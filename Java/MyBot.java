@@ -10,7 +10,7 @@ public class MyBot {
 
         Networking.sendInit("MyJavaBot");
 
-        while(true) {
+        while(!false) {
             List<Move> moves = new ArrayList<Move>();
 
             Networking.updateFrame(gameMap);
