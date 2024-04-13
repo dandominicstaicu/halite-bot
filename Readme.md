@@ -1,6 +1,5 @@
 # Project Evaluator
 
-Conţinutul repository-ului:
 
 - environment/          - engine-ul jocului 
 - replays/              - folder cu rezultatele rularii botului (fisiere tip *.hlt) - (se genereaza automat la rulare)

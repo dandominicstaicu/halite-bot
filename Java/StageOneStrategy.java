@@ -4,11 +4,14 @@ import java.util.Map.Entry;
 public class StageOneStrategy implements GameStrategy {
     private GameMap gameMap;
     private int myID;
+    // all moves to be returned
     private List<Move> moves;
-    private Set<Location> myLocations;
-    private PriorityQueue<Location> heap;
+    // all locations owned by me
+    private Set<Location> ownedLocations;
+    // all locations that are on the front line ie near owned locations
+    private PriorityQueue<Location> frontLine;
 
-    private class HeapComparator implements Comparator<Location> {
+    private class frontLineLocationComparator implements Comparator<Location> {
         private double getScore(Location location) {
             return (1.0 * location.getSite().production) / (1.0 * location.getSite().strength) + 1;
         }
@@ -47,7 +50,7 @@ public class StageOneStrategy implements GameStrategy {
 
         for (Direction dir : Direction.DIRECTIONS) {
             Location newLocation = gameMap.getLocation(location, dir);
-            if (newLocation.getSite().owner == myID && myLocations.contains(newLocation)) {
+            if (newLocation.getSite().owner == myID && ownedLocations.contains(newLocation)) {
                 conquerors.add(new AbstractMap.SimpleEntry<>(newLocation, Direction.invertDirection(dir)));
             }
         }
@@ -59,7 +62,7 @@ public class StageOneStrategy implements GameStrategy {
         for (var conqueror : conquerors) {
             if (conqueror.getKey().getSite().strength >= location.getSite().strength) {
                 moves.add(new Move(conqueror.getKey(), conqueror.getValue()));
-                myLocations.remove(conqueror.getKey());
+                ownedLocations.remove(conqueror.getKey());
             }
         }
     }
@@ -119,7 +122,7 @@ public class StageOneStrategy implements GameStrategy {
             if (site.strength < 5 * site.production) {
                 Move newMove = new Move(location, Direction.STILL);
                 moves.add(newMove);
-                myLocations.remove(location);
+                ownedLocations.remove(location);
 
             } else {
                 Location north = findFarthestBoundary(location, Direction.NORTH, gameMap.height / 2);
@@ -135,7 +138,7 @@ public class StageOneStrategy implements GameStrategy {
                 checkAndUpdateBestMove(location, west, Direction.WEST, tracker);
 
                 moves.add(new Move(location, tracker.bestMove.dir));
-                myLocations.remove(location);
+                ownedLocations.remove(location);
             }
         }
     }
@@ -146,31 +149,31 @@ public class StageOneStrategy implements GameStrategy {
         gameMap = gameContext.gameMap;
         myID = gameContext.myID;
         moves = new ArrayList<>();
-        myLocations = new HashSet<>();
-        heap = new PriorityQueue<>(new HeapComparator());
+        ownedLocations = new HashSet<>();
+        frontLine = new PriorityQueue<>(new frontLineLocationComparator());
 
         for (int y = 0; y < gameMap.height; y++) {
             for (int x = 0; x < gameMap.width; x++) {
                 Location location = gameMap.getLocation(x, y);
                 if (isNeighbour(location) && location.getSite().owner != myID) {
-                    heap.add(location);
+                    frontLine.add(location);
                 }
 
                 if (location.getSite().owner == myID) {
-                    myLocations.add(location);
+                    ownedLocations.add(location);
                 }
 
                 moveInnerTerritory(location, x, y);
             }
         }
 
-        while (!heap.isEmpty()) {
-            Location location = heap.poll();
+        while (!frontLine.isEmpty()) {
+            Location location = frontLine.poll();
             conquer(location);
         }
 
         // for all weak exteriors
-        for (Location location : myLocations) {
+        for (Location location : ownedLocations) {
             moves.add(new Move(location, Direction.STILL));
         }
 
