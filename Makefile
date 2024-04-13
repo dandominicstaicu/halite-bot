@@ -50,3 +50,17 @@ custom:
 	@echo "enter file name:"
 	@read FILE; \
 	python3 vis.py $(BROWSER) $$FILE
+
+
+round1:
+	python3 run.py --cmd "java StageOneBot" --round 1
+
+round2:
+	 python3 run.py --cmd "java StageTwoBot" --round 2 --clean
+
+check1:
+	> round1.out; \
+	for dim in "15 20" "20 15" "30 30" "40 40" "50 50"; do \
+		echo "Running Halite with dimensions $$dim" >> round1.out; \
+		$(HALITE) -d "$$dim" -n 1 -s 42 "$(JAVA) StageOneBot" >> round1.out; \
+	done
