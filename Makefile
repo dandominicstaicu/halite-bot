@@ -1,25 +1,45 @@
-SOURCE_FOLDER=Java
+JAVA=java
+HALITE=./halite
+DIM ?= 30 30
 MY_BOT=MyBot
 BOT_1=bots/DBotv4_linux_x64
 BOT_2=bots/starkbot_linux_x64
-DIM ?= "30 30"
+BROWSER=google-chrome
+FILE ?= ""
 
+.PHONY: all build clean move_classes fight-random fight-1 fight-2 vis custom
+
+all: build move_classes
 
 build:
-	javac $(SOURCE_FOLDER)/MyBot.java
-	javac $(SOURCE_FOLDER)/RandomBot.java
+	$(MAKE) -C Java build
 
+move_classes:
+	mv Java/*.class .
 
 clean:
-	rm -rf *.class *.log *.hlt *.replay
+	$(MAKE) -C Java clean
+	rm -f *.class *.log *.hlt *.replay
 
-# make fight-random DIM="30 30"
 fight-random:
-	./halite -d $(DIM) -n 1 -s 42 "java $(MY_BOT)" "java RandomBot"
+	$(HALITE) -d "$(DIM)" -n 1 -s 42 "$(JAVA) $(MY_BOT)" "$(JAVA) RandomBot"
 
 fight-1:
-	./halite -d $(DIM) -n 1 -s 42 "java $(MY_BOT)" $(BOT_1)
+	$(HALITE) -d "$(DIM)" -n 1 -s 42 "$(JAVA) $(MY_BOT)" "$(BOT_1)"
 
 fight-2:
-	./halite -d $(DIM) -n 1 -s 42 "java $(MY_BOT)" $(BOT_2)
+	$(HALITE) -d "$(DIM)" -n 1 -s 42 "$(JAVA) $(MY_BOT)" "$(BOT_2)"
 
+vis:
+	@FILE=$$(ls -t *.hlt | head -1); \
+	if [ -z "$$FILE" ]; then \
+		echo "No .hlt file found."; \
+	else \
+		echo "Using file: $$FILE"; \
+		python3 vis.py $(BROWSER) $$FILE; \
+	fi
+
+custom:
+	@echo "enter file name:"
+	@read FILE; \
+	python3 vis.py $(BROWSER) $$FILE
