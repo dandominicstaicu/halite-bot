@@ -126,17 +126,18 @@ public class StageOneBot {
                 }
             }
 
+            // dominic do your magic here. remove them from myLocations after assigning them work
+
             while (!heap.isEmpty()) {
                 Location location = heap.poll();
                 conquer(location);
             }
 
+
+            // for all weak exteriors
             for (Location location : myLocations) {
                 moves.add(new Move(location, Direction.STILL));
             }
-
-            
-
 
 
             Networking.sendFrame(moves);
