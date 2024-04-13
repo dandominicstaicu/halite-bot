@@ -141,19 +141,6 @@ public class StageOneBot {
 
             Networking.updateFrame(gameMap);
 
-            /*
-             * parcurgem tot, pt vecini calculam scorul -> heap
-             *
-             *
-             * while !heap_empty:
-             *  // verificam daca putem sa cucerim direct, daca nu stam
-             *
-             * parcurgem inca o data, ce nu a fost mutat (int interior) il facem sa mearga spre exteriorul cel mai apropiat daca are un strenght >= 5 * prod
-             *
-             *
-             */
-
-
             // traverse the map and add neighbours to heap
             for (int y = 0; y < gameMap.height; y++) {
                 for (int x = 0; x < gameMap.width; x++) {
@@ -167,8 +154,6 @@ public class StageOneBot {
                     }
                 }
             }
-
-            // dominic do your magic here. remove them from myLocations after assigning them work
 
             for (int y = 0; y < gameMap.height; y++) {
                 for (int x = 0; x < gameMap.width; x++) {
