@@ -33,6 +33,8 @@ fight-2:
 fight-bots:
 	$(HALITE) -d "$(DIM)" -n 1 -s 42 "$(BOT_1)" "$(BOT_2)"
 
+ 
+
 # shows the latest reply file
 vis:
 	@FILE=$$(ls -t *.hlt | head -1); \
