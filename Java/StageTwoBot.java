@@ -3,8 +3,6 @@ import java.util.Comparator;
 import java.util.HashSet;
 import java.util.List;
 import java.util.PriorityQueue;
-import java.io.FileReader;
-import java.io.FileWriter;
 import java.util.*;
 import java.util.Map.Entry;
 
@@ -15,10 +13,6 @@ public class StageTwoBot {
     private static List<Move> moves = new ArrayList<Move>();
     private static Set<Location> myLocations = new HashSet<>();
     private static PriorityQueue<Location> heap = new PriorityQueue<>(new HeapComparator());
-
-
-    // debug
-    private static String file = "output.txt";
 
     private static double getScore(Location location) {
         return (1.0 * location.getSite().production) / (1.0 * location.getSite().strength) + 1;
@@ -122,8 +116,37 @@ public class StageTwoBot {
         }
     }
 
-    static void moveInnerTerritory(Location location) {
-        
+    static void moveInnerTerritory(Location location, int x, int y) {
+        Site site = location.getSite();
+
+        if (site.owner == myID) {
+            if (!isInnerLoc(x, y)) {
+                return;
+            }
+
+            // do not move if strenght < 5 * prod wait for it to increase
+            if (site.strength < 5 * site.production) {
+                Move newMove = new Move(location, Direction.STILL);
+                moves.add(newMove);
+                myLocations.remove(location);
+
+            } else {
+                Location north = findFarthestBoundary(location, Direction.NORTH, gameMap.height / 2);
+                Location south = findFarthestBoundary(location, Direction.SOUTH, gameMap.height / 2);
+                Location east = findFarthestBoundary(location, Direction.EAST, gameMap.width / 2);
+                Location west = findFarthestBoundary(location, Direction.WEST, gameMap.width / 2);
+
+                BestMoveTracker tracker = new BestMoveTracker();
+
+                checkAndUpdateBestMove(location, north, Direction.NORTH, tracker);
+                checkAndUpdateBestMove(location, south, Direction.SOUTH, tracker);
+                checkAndUpdateBestMove(location, east, Direction.EAST, tracker);
+                checkAndUpdateBestMove(location, west, Direction.WEST, tracker);
+
+                moves.add(new Move(location, tracker.bestMove.dir));
+                myLocations.remove(location);
+            }
+        }
     }
 
     public static void main(String[] args) throws java.io.IOException {
@@ -133,10 +156,6 @@ public class StageTwoBot {
         gameMap = iPackage.map;
 
         Networking.sendInit("MyJavaBot");
-
-        FileWriter writer = new FileWriter(file, true);
-        writer.write("New frame\n");
-
 
         while (true) {
             moves.clear();
@@ -157,7 +176,7 @@ public class StageTwoBot {
                         myLocations.add(location);
                     }
 
-                    moveInnerTerritory(location); // TODO refactor the function from the second for
+                    moveInnerTerritory(location, x, y);
                 }
             }
 
