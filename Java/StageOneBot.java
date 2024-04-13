@@ -122,7 +122,7 @@ public class StageOneBot {
         }
     }
 
-    static void moveInnerTerritory(Location location) {
+    static void moveInnerTerritory(Location location, int x, int y) {
         
     }
 
@@ -157,7 +157,7 @@ public class StageOneBot {
                         myLocations.add(location);
                     }
 
-                    moveInnerTerritory(location); // TODO refactor the function from the second for
+                    moveInnerTerritory(location, x, y); // TODO refactor the function from the second for
                 }
             }
 
