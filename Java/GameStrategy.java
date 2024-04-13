@@ -3,6 +3,7 @@ import java.util.*;
 public abstract class GameStrategy {
     protected GameMap gameMap;
     protected int myID;
+    protected List<Move> moves;
 
     public GameStrategy() {
 

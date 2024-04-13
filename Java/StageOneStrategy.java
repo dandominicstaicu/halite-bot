@@ -2,8 +2,6 @@ import java.util.*;
 import java.util.Map.Entry;
 
 public class StageOneStrategy extends GameStrategy {
-    // all moves to be returned
-    private List<Move> moves;
     // all locations owned by me
     private Set<Location> ownedLocations;
     // all locations that are on the front line ie near owned locations

@@ -56,7 +56,7 @@ round1:
 	python3 run.py --cmd "java StageOneBot" --round 1
 
 round2:
-	 python3 run.py --cmd "java StageTwoBot" --round 2 --clean
+	 python3 run.py --cmd "java StageTwoBot" --round 2
 
 check1:
 	> round1.out; \
