@@ -1,9 +1,7 @@
 import java.util.*;
 import java.util.Map.Entry;
 
-public class StageOneStrategy implements GameStrategy {
-    private GameMap gameMap;
-    private int myID;
+public class StageOneStrategy extends GameStrategy {
     // all moves to be returned
     private List<Move> moves;
     // all locations owned by me
@@ -11,6 +9,26 @@ public class StageOneStrategy implements GameStrategy {
     // all locations that are on the front line ie near owned locations
     private PriorityQueue<Location> frontLine;
 
+    // keeps track of the best move to a location and the distance to it, used in moveInnerTerritory
+    private  class BestMoveTracker {
+        public Move bestMove;
+        public double shortestDistance;
+
+        public BestMoveTracker() {
+            this.bestMove = null;
+            this.shortestDistance = Double.MAX_VALUE;
+        }
+
+        public void updateMove(Location dest, Location loc, Direction direct) {
+            double dist = gameMap.getDistance(dest, loc);
+            if (dist < shortestDistance) {
+                shortestDistance = dist;
+                bestMove = new Move(loc, direct);
+            }
+        }
+    }
+
+    // comparator for front line locations based on the score (max heap)
     private class frontLineLocationComparator implements Comparator<Location> {
         private double getScore(Location location) {
             return (1.0 * location.getSite().production) / (1.0 * location.getSite().strength) + 1;
@@ -35,16 +53,6 @@ public class StageOneStrategy implements GameStrategy {
         }
     }
 
-    private  boolean isNeighbour(Location location) {
-        for (Direction dir : Direction.DIRECTIONS) {
-            Location newLocation = gameMap.getLocation(location, dir);
-            if (newLocation.getSite().owner == myID) {
-                return true;
-            }
-        }
-        return false;
-    }
-
     private  List<Entry<Location, Direction>> getConquerors(Location location) {
         List<Entry<Location, Direction>> conquerors = new ArrayList<>();
 
@@ -67,49 +75,6 @@ public class StageOneStrategy implements GameStrategy {
         }
     }
 
-    private  class BestMoveTracker {
-        public Move bestMove;
-        public double shortestDistance;
-
-        public BestMoveTracker() {
-            this.bestMove = null;
-            this.shortestDistance = Double.MAX_VALUE;
-        }
-    }
-
-    private  boolean isInnerLoc(int x, int y) {
-        Location location = gameMap.getLocation(x, y);
-        Site site = location.getSite();
-
-        Location north = gameMap.getLocation(location, Direction.NORTH);
-        Location south = gameMap.getLocation(location, Direction.SOUTH);
-        Location east = gameMap.getLocation(location, Direction.EAST);
-        Location west = gameMap.getLocation(location, Direction.WEST);
-
-        return north.getSite().owner == site.owner
-                && south.getSite().owner == site.owner
-                && west.getSite().owner == site.owner
-                && east.getSite().owner == site.owner;
-    }
-
-    private  Location findFarthestBoundary(Location start, Direction direction, int limit) {
-        int distance = 0;
-        Location current = start;
-        while (current.getSite().owner == start.getSite().owner && distance < limit) {
-            current = gameMap.getLocation(current, direction);
-            distance++;
-        }
-        return current;
-    }
-
-    private  void checkAndUpdateBestMove(Location location, Location loc, Direction dir, BestMoveTracker tracker) {
-        double dist = gameMap.getDistance(location, loc);
-        if (dist < tracker.shortestDistance) {
-            tracker.shortestDistance = dist;
-            tracker.bestMove = new Move(loc, dir);
-        }
-    }
-
      void moveInnerTerritory(Location location, int x, int y) {
         Site site = location.getSite();
 
@@ -123,23 +88,24 @@ public class StageOneStrategy implements GameStrategy {
                 Move newMove = new Move(location, Direction.STILL);
                 moves.add(newMove);
                 ownedLocations.remove(location);
+                return;
 
-            } else {
-                Location north = findFarthestBoundary(location, Direction.NORTH, gameMap.height / 2);
-                Location south = findFarthestBoundary(location, Direction.SOUTH, gameMap.height / 2);
-                Location east = findFarthestBoundary(location, Direction.EAST, gameMap.width / 2);
-                Location west = findFarthestBoundary(location, Direction.WEST, gameMap.width / 2);
-
-                BestMoveTracker tracker = new BestMoveTracker();
-
-                checkAndUpdateBestMove(location, north, Direction.NORTH, tracker);
-                checkAndUpdateBestMove(location, south, Direction.SOUTH, tracker);
-                checkAndUpdateBestMove(location, east, Direction.EAST, tracker);
-                checkAndUpdateBestMove(location, west, Direction.WEST, tracker);
-
-                moves.add(new Move(location, tracker.bestMove.dir));
-                ownedLocations.remove(location);
             }
+
+            BestMoveTracker tracker = new BestMoveTracker();
+
+            for (Direction dir : Direction.getEastWestDirections()) {
+                Location destination = findFarthestBoundary(location, dir, gameMap.width / 2);
+                tracker.updateMove(location, destination, dir);
+            }
+
+            for (Direction dir : Direction.getNorthSouthDirections()) {
+                Location destination = findFarthestBoundary(location, dir, gameMap.height / 2);
+                tracker.updateMove(location, destination, dir);
+            }
+
+            moves.add(new Move(location, tracker.bestMove.dir));
+            ownedLocations.remove(location);
         }
     }
 

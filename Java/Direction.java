@@ -25,4 +25,12 @@ public enum Direction {
                 return STILL;
         }
     }
+
+    public static Direction[] getEastWestDirections() {
+        return new Direction[]{EAST, WEST};
+    }
+
+    public static Direction[] getNorthSouthDirections() {
+        return new Direction[]{NORTH, SOUTH};
+    }
 }
