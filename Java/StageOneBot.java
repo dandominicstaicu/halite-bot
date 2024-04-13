@@ -122,6 +122,10 @@ public class StageOneBot {
         }
     }
 
+    static void moveInnerTerritory(Location location) {
+        
+    }
+
     public static void main(String[] args) throws java.io.IOException {
 
         final InitPackage iPackage = Networking.getInit();
@@ -152,6 +156,8 @@ public class StageOneBot {
                     if (location.getSite().owner == myID) {
                         myLocations.add(location);
                     }
+
+                    moveInnerTerritory(location); // TODO refactor the function from the second for
                 }
             }
 
