@@ -8,7 +8,7 @@ import java.io.FileWriter;
 import java.util.*;
 import java.util.Map.Entry;
 
-public class StageOneBot {
+public class StageTwoBot {
 
     private static GameMap gameMap;
     private static int myID;
