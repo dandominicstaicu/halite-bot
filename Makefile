@@ -1,7 +1,7 @@
 JAVA=java
 HALITE=./halite
 DIM ?= 30 30
-MY_BOT=StageTwoBot
+MY_BOT=Bot
 BOT_1=bots/DBotv4_linux_x64
 BOT_2=bots/starkbot_linux_x64
 BROWSER=google-chrome

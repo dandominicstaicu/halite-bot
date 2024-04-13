@@ -1,3 +1,4 @@
+package oldFormat;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.HashSet;
@@ -5,6 +6,14 @@ import java.util.List;
 import java.util.PriorityQueue;
 import java.util.*;
 import java.util.Map.Entry;
+
+import Direction;
+import GameMap;
+import InitPackage;
+import Location;
+import Move;
+import Networking;
+import Site;
 
 public class StageTwoBot {
 
