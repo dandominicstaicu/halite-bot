@@ -30,6 +30,10 @@ fight-1:
 fight-2:
 	$(HALITE) -d "$(DIM)" -n 1 -s 42 "$(JAVA) $(MY_BOT)" "$(BOT_2)"
 
+fight-bots:
+	$(HALITE) -d "$(DIM)" -n 1 -s 42 "$(BOT_1)" "$(BOT_2)"
+
+# shows the latest reply file
 vis:
 	@FILE=$$(ls -t *.hlt | head -1); \
 	if [ -z "$$FILE" ]; then \
@@ -39,6 +43,7 @@ vis:
 		python3 vis.py $(BROWSER) $$FILE; \
 	fi
 
+# shows a specific replay file
 custom:
 	@echo "enter file name:"
 	@read FILE; \
