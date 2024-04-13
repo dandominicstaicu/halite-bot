@@ -3,8 +3,6 @@ import java.util.Comparator;
 import java.util.HashSet;
 import java.util.List;
 import java.util.PriorityQueue;
-import java.io.FileReader;
-import java.io.FileWriter;
 import java.util.*;
 import java.util.Map.Entry;
 
@@ -15,10 +13,6 @@ public class StageOneBot {
     private static List<Move> moves = new ArrayList<Move>();
     private static Set<Location> myLocations = new HashSet<>();
     private static PriorityQueue<Location> heap = new PriorityQueue<>(new HeapComparator());
-
-
-    // debug
-    private static String file = "output.txt";
 
     private static double getScore(Location location) {
         return (1.0 * location.getSite().production) / (1.0 * location.getSite().strength) + 1;
@@ -163,10 +157,6 @@ public class StageOneBot {
 
         Networking.sendInit("MyJavaBot");
 
-        FileWriter writer = new FileWriter(file, true);
-        writer.write("New frame\n");
-
-
         while (true) {
             moves.clear();
             myLocations.clear();
@@ -186,7 +176,7 @@ public class StageOneBot {
                         myLocations.add(location);
                     }
 
-                    moveInnerTerritory(location, x, y); // TODO refactor the function from the second for
+                    moveInnerTerritory(location, x, y);
                 }
             }
 
