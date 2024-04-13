@@ -5,7 +5,7 @@ SOURCE_FOLDER=.
 SOURCES=$(wildcard $(SOURCE_FOLDER)/*.java)
 CLASSES=$(SOURCES:$(SOURCE_FOLDER)/%.java=%.class)
 
-.PHONY: all build clean fight-random fight-1 fight-2
+.PHONY: all build clean
 
 all: build
 
