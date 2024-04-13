@@ -1,0 +1,10 @@
+15:18:00:INFO: Compiling player sources..
+15:18:00:INFO: Run command: make
+15:18:05:INFO: Run command: rm ./visualizer/40x40-4-1590988241.htm
+15:18:05:INFO: Run command: rm ./visualizer/40x40-4-1579609988.htm
+15:18:05:INFO: Run command: rm ./visualizer/40x40-4-1584633906.htm
+15:18:05:INFO: Run command: rm ./visualizer/40x40-4-1581315241.htm
+15:18:05:INFO: Run command: rm ./visualizer/40x40-4-1587585128.htm
+15:18:05:INFO: Run command: mkdir ./replays
+15:18:05:INFO: Playing round 2
+15:18:06:INFO: Defeat in 400 steps!
