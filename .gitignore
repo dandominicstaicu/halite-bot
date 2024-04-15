@@ -3,3 +3,4 @@ replays
 *.iml
 .idea
 cls
+*.class
