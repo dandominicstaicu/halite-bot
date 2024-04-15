@@ -1,54 +1,30 @@
-# Project Evaluator
+# Halite Bot
+## Team Chess.com
+
+Java Bot for the [Halite](https://github.com/HaliteChallenge/Halite) competition designed by team "Chess.com" for the Algorithms Design course (2nd year);
+This bot fights for control of a 2D grid. The bot with the most territory at the end wins.
+
+### Credits
+#### Carauleanu Valentin Gabriel 321CA
+#### Sampetru Mario 321CA
+#### Staicu Dan-Dominic 321CA
+
+## Bot overview
+
+### Stage One
+
+In this stage, the bot has to cover entirely map without fighting with any other bots.
+The key strategy here is treating the front lines of the owned territory differently from the inner one.
+The front line locations are kept in a PriorityQueue and all the owned locations in a Set.
+For the PriorityQueue it was implemented a comparator in order to create a max heap.
 
 
-- environment/          - engine-ul jocului 
-- replays/              - folder cu rezultatele rularii botului (fisiere tip *.hlt) - (se genereaza automat la rulare)
-- bots/                 - folder cu botii pusi la dispozitie de echipa de PA
-- run.py                - scriptul de evaluare
-- halite-resources.zip  - arhivă cu conținutul acestui repository
-- README.md             - acest fisier
+For the **Inner Territory** the strategy is to move the tile only if the strength is at least the value of 5 * production in order to be worth it.
+If a tile is ready to be moved, the bot checks which is the closest direction in order to find the best move and move into that way.
 
 
-Prerequisites
-===============
+For the **Front Lines**, that 
 
-Pentru rularea scriptului de evaluare aveți nevoie de Python (>= 3.6).
-Scriptul a fost testat pe o masina de Linux de 64 bits.
-    
 
-Testare
-===============
 
-Scriptul va realiza urmatorii pasi inainte de executia propriu-zisa:
-
-- va incerca sa compileze engine-ul jocului daca executabilul (halite) nu se afla in path
-- va incerca sa ruleze "make" pentru a re-compila botul daca descopera un fisier de tip Makefile in path 
-- va sterge log-urile ramase de la executiile precedente
-
-Important: Folositi versiunea engine-ului din acest repo (folderul environment/).
-Spre deosebire de engine-ul din competitia originala am facut cateva modificari minore pentru
-ca fisierele generate de logging sa ofere mai multe informatii. Scriptul acesta se bazeaza 
-pe modificarile respective.
-
-Example rulare:
-
-C++ Bot:
-
-    python ./run.py --cmd "./MyBot" --round 2 
-
-Java Bot:
-
-    python ./run.py --cmd "java MyBot" --round 2 --visualizer "firefox"
-
-Python:
-
-    python ./run.py --cmd "python3 MyBot.py" --round 2 --visualizer "google-chrome-stable"
-    
-Arguments
-
-    --cmd        Comanda de execuție pentru bot (trebuie sa fie validă pentru locația curentă)
-    --round      (Optional) Indicele rundei (1, 2, 3, 4, 5), default 0 (le ruleaza pe toate)
-    --clean      (Optional) Șterge fișierele de log/replays, apeleaza `make clean`
-    --visualiser (Optional) Numele browser-ului in care sa fie afisate rezultatele fiecarui joc
-    --logging    (Optional) Defineste cat de explicite (verbose) sunt mesajele de logging. Optiunile sunt: 
-        - 'critical' (doar mesajele critice), 'info', 'debug' (most verbose) 
+All the other locations that are still in the owned locations set have to be weak exteriors that should stand still to get their strength higher.

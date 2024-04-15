@@ -34,7 +34,6 @@ public abstract class GameStrategy {
 
     protected  boolean isInnerLoc(int x, int y) {
         Location location = gameMap.getLocation(x, y);
-        Site site = location.getSite();
 
         List<Location> neighbours = new ArrayList<>();
         for (Direction dir : Direction.DIRECTIONS) {

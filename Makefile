@@ -1,6 +1,6 @@
 JAVA=java
 HALITE=./halite
-DIM ?= 30 30
+DIM ?= 40 40
 MY_BOT=Bot
 BOT_1=bots/DBotv4_linux_x64
 BOT_2=bots/starkbot_linux_x64
@@ -56,7 +56,7 @@ round1:
 	python3 run.py --cmd "java StageOneBot" --round 1
 
 round2:
-	 python3 run.py --cmd "java StageTwoBot" --round 2
+	 python3 run.py --cmd "java Bot" --round 2
 
 check1:
 	> round1.out; \

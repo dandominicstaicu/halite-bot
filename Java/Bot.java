@@ -22,7 +22,8 @@ public class Bot {
     }
 
     public static void main(String[] args) throws IOException {
-        Bot bot = new Bot(new StageOneStrategy());
+        // Bot bot = new Bot(new StageOneStrategy());
+        Bot bot = new Bot(new StageTwoStrategy());
         bot.gameLoop();
     }
 }  
