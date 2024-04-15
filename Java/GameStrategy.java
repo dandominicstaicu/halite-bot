@@ -21,6 +21,17 @@ public abstract class GameStrategy {
         return false;
     }
 
+    protected List<Location> getNeighbours(Location location) {
+        List<Location> neighbours = new ArrayList<>();
+        for (Direction dir : Direction.DIRECTIONS) {
+            Location newLocation = gameMap.getLocation(location, dir);
+            if (newLocation.getSite().owner == myID) {
+                neighbours.add(newLocation);
+            }
+        }
+        return neighbours;
+    }
+
     protected  boolean isInnerLoc(int x, int y) {
         Location location = gameMap.getLocation(x, y);
         Site site = location.getSite();

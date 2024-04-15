@@ -29,7 +29,7 @@ public class StageOneStrategy extends GameStrategy {
     // comparator for front line locations based on the score (max heap)
     private class frontLineLocationComparator implements Comparator<Location> {
         private double getScore(Location location) {
-            return (1.0 * location.getSite().production) / (1.0 * location.getSite().strength) + 1;
+            return location.getSite().production == 0 ? Double.MAX_VALUE : 1.0 * location.getSite().strength / location.getSite().production + 1;
         }
 
         @Override
@@ -47,7 +47,7 @@ public class StageOneStrategy extends GameStrategy {
                 scoreB += getScore(newLocation);
             }
 
-            return Double.compare(scoreA, scoreB);
+            return -Double.compare(scoreA, scoreB);
         }
     }
 
