@@ -1,21 +1,17 @@
-13:27:26:INFO: Compiling player sources..
-13:27:26:INFO: Run command: make
-13:27:31:INFO: Run command: rm ./visualizer/40x40-4-1634300932.htm
-13:27:31:INFO: Run command: rm ./visualizer/30x30-5-52395049.htm
-13:27:31:INFO: Run command: rm ./visualizer/50x50-1-42.htm
-13:27:31:INFO: Run command: rm ./visualizer/30x30-2-42.htm
-13:27:31:INFO: Run command: rm ./visualizer/30x30-1-42.htm
-13:27:31:INFO: Run command: mkdir ./replays
-13:27:31:INFO: Playing round 2
-13:27:32:INFO: Victory in 147 steps!
-13:27:35:INFO: Defeat in 400 steps!
-13:27:37:INFO: Defeat in 400 steps!
-13:27:40:INFO: Defeat in 400 steps!
-13:27:44:INFO: Defeat in 400 steps!
-13:27:46:INFO: Victory in 182 steps!
-13:27:49:INFO: Defeat in 400 steps!
-13:27:51:INFO: Defeat in 400 steps!
-13:27:53:INFO: Victory in 196 steps!
-13:27:55:INFO: Defeat in 400 steps!
-13:27:55:CRITICAL: Round 2 - wins 3 / 10 - done!
-13:27:55:CRITICAL: Scored 3.75/100.0 points
+21:19:35:INFO: Compiling player sources..
+21:19:35:INFO: Run command: make
+21:19:39:INFO: Run command: rm ./visualizer/40x40-2-154.htm
+21:19:39:INFO: Run command: mkdir ./replays
+21:19:39:INFO: Playing round 1
+21:19:39:INFO: Defeat in 1 steps!
+21:19:39:INFO: Defeat in 1 steps!
+21:19:39:INFO: Defeat in 1 steps!
+21:19:39:INFO: Defeat in 1 steps!
+21:19:39:INFO: Defeat in 1 steps!
+21:19:39:INFO: Defeat in 1 steps!
+21:19:39:INFO: Defeat in 1 steps!
+21:19:39:INFO: Defeat in 1 steps!
+21:19:39:INFO: Defeat in 1 steps!
+21:19:39:INFO: Defeat in 1 steps!
+21:19:39:CRITICAL: Round 1 - wins 0 / 10 - done!
+21:19:39:CRITICAL: Scored 0.0/100.0 points

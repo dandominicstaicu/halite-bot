@@ -1,141 +1,35 @@
 import os
 import sys
-import shlex
 import json
 import random
-import logging
-import platform
+from subprocess import call
+
 import argparse
-from pathlib import Path
-from subprocess import call, run
+import math
 
 
-def setup_logging(logging_level: str):
+def produce_game_environment():
 
-    level_map = {
-        "info": logging.INFO,
-        "debug": logging.DEBUG,
-        "critical": logging.CRITICAL
-    }
-
-    if logging_level not in level_map:
-        sys.stderr.write("Unrecognized logging level {}".format(logging_level))
-        exit(1)
-
-    logging.basicConfig(level=level_map[logging_level],
-                        format='%(asctime)s: %(message)s',
-                        datefmt='%H:%M:%S',
-                        )
-
-    formatter = logging.Formatter('%(asctime)s:%(levelname)s: %(message)s', datefmt='%H:%M:%S')
-    file_handler = logging.FileHandler("run.trace", mode="w")
-    file_handler.setLevel(level=level_map['debug'])
-    file_handler.setFormatter(formatter)
-    logging.getLogger().addHandler(file_handler)
-
-
-def run_system_command(cmd: str,
-                       shell: bool = False,
-                       err_msg: str = None,
-                       verbose: bool = True,
-                       split: bool = True,
-                       stdout=None,
-                       stderr=None) -> int:
-    """
-    :param cmd: A string with the terminal command invoking an external program
-    :param shell: Whether the command should be executed through the shell
-    :param err_msg: Error message to print if execution fails
-    :param verbose: Whether to print the command to the standard output stream
-    :param split: Whether to split the tokens in the command string
-    :param stdout: file pointer to redirect stdout to
-    :param stderr: file pointer to redirect stderr to
-    :return: Return code
-    """
-    if verbose:
-        logging.debug("Current path: {}".format(Path.cwd()))
-        logging.info("Run command: {}".format(cmd))
-    if split and not shell:
-        cmd = shlex.split(cmd)
-    result = run(cmd, shell=shell, stdout=stdout, stderr=stderr)
-    if err_msg and result.returncode:
-        logging.critical(err_msg)
-        exit(result.returncode)
-    return result.returncode
-
-
-def compile_game_engine():
-
-    logging.info("Game engine not available!")
-    logging.info("Compiling game engine..")
-
-    current_path = Path.cwd()
-    env_path     = current_path / "environment"
-
-    if not os.path.exists(env_path):
-        logging.critical("Couldn't find the engine sources - I expected them to be in ./environment")
-        exit(1)
-
-    os.chdir(env_path)
-    run_system_command("make")
-    run_system_command("cp halite ../halite")
-    os.chdir(current_path)
+    sys.stdout.write("Compiling game engine..\n")
+    cmd = "cd ./environment; make; cd ../; cp ./environment/halite ./halite"
+    call([cmd], shell=True)
 
     if not os.path.exists("halite"):
-        logging.critical("Failed to produce executable environment!")
+        sys.stderr.write("Failed to produce executable environment\n")
+        sys.stderr.write("Corrupt archive?")
         exit(1)
 
 
-def get_player_makefile():
-    makefile = False
-    if os.path.exists("makefile"):
-        makefile = "makefile"
-    elif os.path.exists("Makefile"):
-        makefile = "Makefile"
-    return makefile
-
-
-def compile_player_bot():
-
-    makefile = get_player_makefile()
-    if makefile:
-        logging.info("Compiling player sources..")
-        run_system_command("make")
-
-
-def clean_player_sources():
-
-    makefile = get_player_makefile()
-    if makefile:
-        logging.info("Cleaning player data..")
-        run_system_command("make clean")
-
-
-def clean_logs():
-
-    run_system_command("rm -f *.hlt", shell=True, verbose=False)
-    run_system_command("rm -rf replays/", shell=True, verbose=False)
-    run_system_command("rm -f *.log", shell=True, verbose=False)
-
-
-def clean():
-
-    clean_logs()
-    clean_player_sources()
-
-
-def check_environment():
+def check_env():
 
     if not os.path.exists("halite"):
-        compile_game_engine()
+        produce_game_environment()
 
-    compile_player_bot()
+    if os.path.exists("makefile") or os.path.exists("Makefile"):
+        sys.stdout.write("Compiling player sources..\n")
+        call(["make"], shell=True)
 
-    for file in os.listdir("./visualizer/"):
-        if file != "Visualizer.htm" and file.endswith(".htm"):
-            run_system_command("rm ./visualizer/{}".format(file))
-
-    clean_logs()
-    run_system_command("mkdir ./replays")
+    call(["rm -rf *.hlt; rm -rf replays; mkdir -p replays;"], shell=True)
 
 
 def view_replay(browser, log):
@@ -164,104 +58,295 @@ def view_replay(browser, log):
         call(browser + " " + path_to_file + " &", shell=True, stderr=null, stdout=null)
 
 
-def play_round(player_cmd, game_round, browser):
+class HaliteEnv(object):
 
-    NUM_GAMES = 10
-    TOP_GAMES = 8
+    def __init__(self,
+                 player_bot_cmd,
+                 height=30,
+                 width=30,
+                 seed=42,
+                 max_turns=-1):
 
-    if not 1 <= game_round <= 5:
-        logging.critical("Invalid round parameter {}, expected an integer value between 1 and 5".format(game_round))
-        exit(1)
+        self.bots      = [player_bot_cmd]
+        self.height    = height
+        self.width     = width
+        self.seed      = seed
+        self.max_turns = max_turns
 
-    logging.info("Playing round {}".format(game_round))
+    def __add_map(self, cmd):
 
-    configs = [
-        (30, [25, 30, 40, 50], ["DBotv4"]),
-        (10, [40], ["DBotv4"] * 3),
-        (30, [25, 30, 40, 50], ["starkbot"]),
-        (20, [40], ["starkbot", "DBotv4", "DBotv4"]),
-        (10, [40], ["starkbot"] * 3)
-    ]
+        cmd += "-d \"{0} {1}\" ".format(self.width, self.height)
+        cmd += "-s {0}".format(self.seed)
+        return cmd
 
-    score, maps, bots = configs[game_round - 1]
-    bots = ["\"./bots/{}_linux_x64\"".format(bot) for bot in bots]
+    def __add_bot(self, cmd, bot_cmd):
 
-    wins = 0
-    map_configs = maps + [random.choice(maps) for _ in range(NUM_GAMES - len(maps))]
-    engine_cmd  = ["./halite", "-q"]
+        cmd += " \"{0}\"".format(bot_cmd)
+        return cmd
 
-    for game_idx, map_size in enumerate(map_configs):
-        map_config = "-d \"{} {}\"".format(map_size, map_size)
+    def __add_turn_limit(self, cmd):
 
-        game_cmd = list(engine_cmd)
-        game_cmd.append(map_config)
-        game_cmd.append("\"{}\"".format(player_cmd))
-        game_cmd += bots
-        run_system_command(" ".join(game_cmd), verbose=False)
-        game_log = None
+        if self.max_turns > 0:
+            cmd += " --max_turns {0} ".format(self.max_turns)
+        return cmd
+
+    def run(self):
+
+        sys.stdout.write("Map: Height {0}, Width {1}, Seed {2}\n".format(self.height, self.width, self.seed))
+
+        cmd = "./halite -q "
+        cmd = self.__add_map(cmd)
+        cmd = self.__add_turn_limit(cmd)
+
+        for bot in self.bots:
+            cmd = self.__add_bot(cmd, bot)
+
+        call([cmd], shell=True)
+
+        result = None
         for file in os.listdir("./"):
             if file.endswith(".hlt"):
-                game_log = file
+                result = file
 
-        if not game_log:
-            logging.critical("There was an error during the game, "
-                             "no valid replay file was produced!")
-        else:
-            with open(game_log, "r") as f:
-                result = json.loads(f.read())
+        if result is None:
+            sys.stderr.write("There was an error during the game, "
+                             "no valid replay file was produced!\n")
+            return None
 
-                if "starkbot" in result["winner"] or "DBot" in result["winner"]:
-                    game_type = "Defeat"
+        return result
+
+
+def default_map_limit(height, width):
+    return int(math.sqrt(height * width) * 10)
+
+
+def compute_score(player_result, soft_limit, hard_limit, game_weight):
+    return game_weight * (1 - (player_result - soft_limit) / (hard_limit - soft_limit))
+
+
+def round_one(cmd, browser=None):
+
+    sys.stdout.write("Round 1 - single player map conquest!\n")
+
+    env   = HaliteEnv(cmd)
+    games = [
+            (15, 20, 42, 175, 200),  # Try to beat 120
+            (20, 15, 42, 175, 200),  # Try to beat 120
+            (30, 30, 42, 250, 300),  # Try to beat 150
+            (40, 40, 42, 275, 400),  # Try to beat 200
+            (50, 50, 42, 300, 500),  # Try to beat 200
+            # (50, 50, 123456789, 300.0, 500.0)  # Try to beat the world record of 154 frames
+    ]
+
+    max_score    = 0.3                     # Round score
+    game_weight  = max_score / len(games)  # Equal weight / game
+    player_score = 0.0
+
+    for height, width, seed, soft_limit, hard_limit in games:
+
+        env.height     = height
+        env.width      = width
+        env.seed       = seed
+        env.max_turns  = hard_limit
+
+        log = env.run()
+        if log is None:
+            continue
+
+        with open(log, "r") as f:
+            result = json.loads(f.read())
+
+            if result["map_conquered"]:
+                sys.stdout.write("Map conquered in " + str(result["num_frames"]) + "!\n")
+
+                player_result = result["num_frames"]
+
+                if result["num_frames"] <= soft_limit:
+                    points = game_weight
+                elif result["num_frames"] < hard_limit:
+                    points = compute_score(float(player_result),
+                                           float(soft_limit),
+                                           float(hard_limit),
+                                           game_weight)
                 else:
-                    game_type = "Victory"
+                    points = 0.0
+
+                player_score += points
+
+            else:
+                points = 0.0
+                sys.stdout.write("\n" + result["player_names"][0] + " failed to conquer every productive tile on the map!\n")
+
+            sys.stdout.write("Map score: " + str(points) + "\n")
+
+        # if browser:
+        #     view_replay(browser, log)
+
+        call(["mv " + log + " ./replays"], shell=True)
+
+    sys.stdout.write("Round 1 - done!\n")
+    sys.stdout.write("Final score: " + str(player_score) + "/" + str(max_score) + "\n")
+
+
+def round_two(cmd, browser=None):
+
+    sys.stdout.write("Round 2 - 1vs1 battles!\n")
+    # https://ocw.cs.pub.ro/courses/pa/regulament-proiect
+
+    POINTS_PER_ROUND = 0.06
+    BOT_EXEC = "DBotv4_linux_x64"
+
+    env = HaliteEnv(cmd)
+    games = [
+        (28, 24, 314, POINTS_PER_ROUND),
+        (30, 30, 42, POINTS_PER_ROUND),
+        (40, 40, 154, POINTS_PER_ROUND),
+        (30, 50, 3, POINTS_PER_ROUND),
+        (50, 50, 42, POINTS_PER_ROUND),
+    ]
+
+    TOTAL_SCORE = sum(map(lambda x: x[3], games))
+
+    env.bots.append("./bots/" + BOT_EXEC)
+
+    player_score = 0.0
+
+    for height, width, seed, points in games:
+
+        env.height = height
+        env.width  = width
+        env.seed   = seed
+
+        log = env.run()
+        if log is None:
+            continue
+
+        with open(log, "r") as f:
+
+            result = json.loads(f.read())
+            if result["winner"] == result["player_names"][0]:
+                sys.stdout.write("Victory")
+                player_score += points
+            else:
+                sys.stdout.write("Defeat")
+
+            sys.stdout.write(" in {0} steps!\n\n".format(result["num_frames"] - 1))
+
+        # if browser:
+        #     view_replay(browser, log)
+
+        call(["mv {0} ./replays".format(log)], shell=True)
+
+    sys.stdout.write("Round 2 - done!\n")
+    sys.stdout.write("Final score: {0}/{1}\n".format(player_score, TOTAL_SCORE))
+
+
+def round_three(cmd, browser=None):
+    
+    sys.stdout.write("Round 3 - free for all!\n")
+    random.seed()
+
+    DBOT4 = "./bots/DBotv4_linux_x64"
+    STARK = "./bots/starkbot_linux_x64"
+
+    MATCHES_PER_ROUND = 10
+    BEST_CONSIDERED_CNT = 8
+    TOTAL_SCORE = 0.8
+
+    match_sets = [
+        # (weight, possible_dimensions, enemies)
+        (25, [(30, 30), (35, 35), (40, 40)],           [DBOT4, DBOT4, DBOT4]),
+        (25, [(25, 25), (30, 30), (40, 40)],           [STARK]),
+        (15, [(25, 25), (30, 30), (40, 40), (45, 45)], [DBOT4, STARK, DBOT4]),
+        (15, [(30, 30), (40, 40), (50, 50)],           [STARK, DBOT4, STARK]),
+        (20, [(35, 35), (45, 45)],                     [STARK, STARK, STARK]),
+    ]
+    
+    player_score = 0.0
+
+    def get_round_enemies_text(enemies):
+        stark_count = enemies.count(STARK)
+        dbot_count  = len(enemies) - stark_count
+
+        res = ""
+        res += "{0}x starkbot".format(stark_count) if stark_count != 0              else ""
+        res += ", "                                if res != "" and dbot_count != 0 else ""
+        res += "{0}x DBotv4".format(dbot_count)    if dbot_count != 0               else ""
+        res += "!"
+        
+        return res
+
+    for setno, params in enumerate(match_sets, 1):
+        weight, dims, enemies = params
+        env = HaliteEnv(cmd)
+        wins = 0
+
+        sys.stdout.write("Set #{0}: {1}\n\n".format(setno, get_round_enemies_text(enemies)))
+
+        for bot in enemies:
+            env.bots.append(bot)
+        
+        for i in range(1, MATCHES_PER_ROUND + 1):
+            env.height, env.width = random.choice(dims)
+            env.seed = random.randint(0, 999_999_999)
+
+            sys.stdout.write("Round #{0}: - ".format(i, env.height, env.width))
+
+            log = env.run()
+            if log is None:
+                sys.stdout.write("ERROR\n\n")
+                continue
+
+            with open(log, "r") as f:
+                result = json.loads(f.read())
+                if result["winner"] == result["player_names"][0]:
+                    sys.stdout.write("Victory in {0} steps!\n\n".format(result["num_frames"] - 1))
                     wins += 1
+                else:
+                    sys.stdout.write("Defeat\n\n")
 
-                logging.info("{} in {} steps!".format(game_type, result["num_frames"] - 1))
+            call(["mv {0} ./replays".format(log)], shell=True)
+        
+        wins = min(wins, BEST_CONSIDERED_CNT)
+        curr_set_max_score = round(weight * TOTAL_SCORE / 100.0, 3)
+        curr_set_points    = round(curr_set_max_score * wins / BEST_CONSIDERED_CNT, 3)
+        sys.stdout.write("Score for set #{0}: {1}/{2}!\n\n".format(setno, curr_set_points, curr_set_max_score))
 
-            if browser:
-                view_replay(browser, game_log)
+        player_score += curr_set_points
+    
+    sys.stdout.write("Round 3 - done!\n")
+    sys.stdout.write("Final score: {0}/{1}\n".format(round(player_score, 3), TOTAL_SCORE))
 
-            run_system_command("mv {} ./replays".format(game_log), verbose=False)
 
-    logging.critical("Round {} - wins {} / {} - done!".format(game_round, wins, NUM_GAMES))
-
-    if wins >= TOP_GAMES:
-        return score
-
-    return (wins * 100 / TOP_GAMES) * score / 100
+def cleanup():
+    call(["rm -f *.hlt; rm -rf replays/; rm -f *.log"], shell=True)
+    if os.path.exists("makefile") or os.path.exists("Makefile"):
+        call(["make clean"], shell=True)
 
 
 def main():
 
-    parser = argparse.ArgumentParser(description='PA Bots Trainer', epilog="Happy Halite Hunting!")
-    parser.add_argument('--cmd', required=True, help="Command line instruction to execute the bot. eg: ./MyBot")
-    parser.add_argument('--round', type=int, default=0, help="Round index (1, 2, 3, 4, 5), default is 0 "
-                                                             "which runs all of them")
+    parser = argparse.ArgumentParser(description='PA project evaluator')
+    parser.add_argument('--cmd', required=True, help="Command line instruction to execute the bot. eg: ./MyBot or \"make run\"")
+    parser.add_argument('--round', type=int, default=1, help="Round index (1, 2, or 3), default 1")
     parser.add_argument('--clean', action="store_true", help="Remove logs/game results, call make clean")
-    parser.add_argument('--visualizer', help="Input preffered browser name to display replays in browser; "
-                                             "eg. \"firefox\", \"google-chrome-stable\"")
-    parser.add_argument('--logging', default="info", help="(Optional) Define logging level for this script, "
-                                                          "the options are: 'info', 'debug', 'critical'")
+    # parser.add_argument('--visualizer', help="Display replays in browser; eg. \"firefox\", \"google-chrome-stable\"")
+    # visualizer delegated to a cross-platform script
     args = parser.parse_args()
 
-    if "Linux" not in platform.system():
-        logging.critical("Warning: Script is designed to work for a 64bit version of Linux!")
+    check_env()
 
-    setup_logging(args.logging)
-    check_environment()
+    rounds = [round_one, round_two, round_three]
 
-    if args.round == 0:
-        score = 0
-        for game_round in range(1, 6):
-            score += play_round(args.cmd, game_round, args.visualizer)
-    else:
-        score = play_round(args.cmd, args.round, args.visualizer)
+    if args.round < 1 or args.round > len(rounds):
+        sys.stderr.write("Invalid round parameter (should be an integer in [1, 3])\n")
+        exit(1)
 
-    logging.critical("Scored {}/100.0 points".format(score))
+    # Let the games begin!
+    rounds[args.round - 1](args.cmd)
 
     if args.clean:
-        clean()
-
+        cleanup()
 
 if __name__ == "__main__":
     main()
