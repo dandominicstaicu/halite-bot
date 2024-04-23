@@ -10,7 +10,14 @@ public class StageTwoStrategy extends GameStrategy {
     private Map<Location, Double> movePlan;
     // key = location, value = score of the location based on the neighbours and the location itself
     private Map<Location, Double> locationScoreMap;
+    // unique Random instance
     private static final Random rand = new Random();
+    // max count of turns
+    private int turnsLeft = 400;
+    // how many turns left are considered endgame
+    private static final int ENDGAME_THRESHOLD = 100;
+    // factor to decrease the score, so it's more attractive to attack
+    private static final double ENDGAME_FACTOR = 0.5;
 
     // class used to keep track of territories and how they are scored
     public static class Territory implements Comparable<Territory> {
@@ -60,6 +67,8 @@ public class StageTwoStrategy extends GameStrategy {
 
     @Override
     public List<Move> computeBestMoves(GameContext gameContext) {
+        --turnsLeft;
+
         gameMap = gameContext.gameMap;
         myID = gameContext.myID;
 
@@ -102,17 +111,6 @@ public class StageTwoStrategy extends GameStrategy {
         // Incorporate friendly distance into the score and update the map
         double updatedScore = territory.score + territory.friendlyDistance;
         locationScoreMap.put(territory.location, updatedScore);
-
-//        double baseScore = territory.score + territory.friendlyDistance;
-//
-//        // Higher score for aggressive moves in the endgame
-//        if (endGameStrategy) {
-//            Site site = territory.location.getSite();
-//            if (site.owner != myID && site.strength < myID.strength) {
-//                baseScore += ATTACK_BONUS;  // A significant bonus to encourage attacks
-//            }
-//        }
-//        locationScoreMap.put(territory.location, baseScore);
     }
 
     private void analyzeNeighbours(Territory territory) {
@@ -252,7 +250,11 @@ public class StageTwoStrategy extends GameStrategy {
             MoveCandidate moveCandidate = new MoveCandidate(neighbour, dir);
 
             // AVOID COLLISIONS and waste of halite
-            if (movePlan.getOrDefault(neighbour, 0.0) + myLocation.getSite().strength > MAX_HALITE) {
+            if (isEndgame()) {
+                // Calculate a more dynamic score based on endgame strategy
+                // Higher scores for attacking weak enemies or closing gaps
+                moveCandidate.score = calculateEndgameScore(neighbour, myLocation);
+            } else if (movePlan.getOrDefault(neighbour, 0.0) + myLocation.getSite().strength > MAX_HALITE) {
                 moveCandidate.score = INFINITY;
             } else {
                 moveCandidate.score = locationScoreMap.get(neighbour);
@@ -262,6 +264,21 @@ public class StageTwoStrategy extends GameStrategy {
         }
 
         return moveCandidates;
+    }
+
+    private boolean isEndgame() {
+        return turnsLeft < ENDGAME_THRESHOLD;
+    }
+
+    private double calculateEndgameScore(Location neighbour, Location myLocation) {
+        double baseScore = locationScoreMap.getOrDefault(neighbour, 0.0);
+        Site neighbourSite = neighbour.getSite();
+
+        if (neighbourSite.owner == 0 || neighbourSite.strength < myLocation.getSite().strength) {
+            // Prioritize attacking or filling gaps
+            return baseScore * ENDGAME_FACTOR; // Decrease score to make these moves more attractive
+        }
+        return baseScore;
     }
 
     private boolean isPartOfThePlan(Location loc) {
