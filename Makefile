@@ -1,7 +1,7 @@
 JAVA=java
 HALITE=./halite
 DIM ?= 40 40
-MY_BOT=Bot
+MY_BOT=BotV2
 BOT_1=bots/DBotv4_linux_x64
 BOT_2=bots/starkbot_linux_x64
 BROWSER=google-chrome
@@ -53,14 +53,7 @@ custom:
 
 
 round1:
-	python3 run.py --cmd "java Bot" --round 1
+	python3 run.py --cmd "java BotV1" --round 1
 
 round2:
-	python3 run.py --cmd "java Bot" --round 2
-
-check1:
-	> round1.out; \
-	for dim in "15 20" "20 15" "30 30" "40 40" "50 50"; do \
-		echo "Running Halite with dimensions $$dim" >> round1.out; \
-		$(HALITE) -d "$$dim" -n 1 -s 42 "$(JAVA) StageOneBot" >> round1.out.improved; \
-	done
+	python3 run.py --cmd "java BotV2" --round 2
