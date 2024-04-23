@@ -1,6 +1,7 @@
 import java.util.*;
 
 public class StageTwoStrategy extends GameStrategy {
+    private static final double ATTACK_BONUS = 20;
     // owned locations on the map ordered by strength -> stronger pieces will be moved first
     private PriorityQueue<Location> ownedLocations;
     // territories around the map to be processed
@@ -8,10 +9,11 @@ public class StageTwoStrategy extends GameStrategy {
     // map between a location and how much power was added to it by a previous move
     private Map<Location, Double> movePlan;
     // key = location, value = score of the location based on the neighbours and the location itself
-    private Map<Location, Double> locationScoreMap; 
+    private Map<Location, Double> locationScoreMap;
+    private static final Random rand = new Random();
 
     // class used to keep track of territories and how they are scored
-    public class Territory implements Comparable<Territory> {
+    public static class Territory implements Comparable<Territory> {
         public double score;
         public Location location;
         // all owned frontier locations have friendlyDistance = 1
@@ -31,7 +33,7 @@ public class StageTwoStrategy extends GameStrategy {
     }
 
     // class used to keep track of possible moves
-    public class MoveCandidate implements Comparable<MoveCandidate> {
+    public static class MoveCandidate implements Comparable<MoveCandidate> {
         // location on game map for the future move
         public Location location;
         // direction towards the location
@@ -40,23 +42,19 @@ public class StageTwoStrategy extends GameStrategy {
         public double score;
 
         public MoveCandidate(Location location, Direction dir) {
-            this.location =  location;
+            this.location = location;
             this.direction = dir;
             this.score = 0;
         }
 
         @Override
         public int compareTo(MoveCandidate o) {
-            if (this.score == o.score) {
-                // brek the ties randomly
-                return new Random().nextInt() - new Random().nextInt();
-            } else {
-                return Double.compare(this.score, o.score);
-            }
+            int scoreComparison = Double.compare(this.score, o.score);
+            return scoreComparison != 0 ? scoreComparison : rand.nextInt(2) - 1;
         }
     }
 
-    private static final double INFINITY = 1.0 * Integer.MAX_VALUE;
+    private static final double INFINITY = Double.MAX_VALUE;
     private static final int MAX_HALITE = 255;
     private static final double SCORE_DISTRIBUTION = 0.5;
 
@@ -67,11 +65,11 @@ public class StageTwoStrategy extends GameStrategy {
 
         // set up
         moves = new ArrayList<>();
-        ownedLocations = new PriorityQueue<Location>((a,b) -> -Double.compare(a.getSite().strength, b.getSite().strength));
+        ownedLocations = new PriorityQueue<Location>((a, b) -> -Double.compare(a.getSite().strength, b.getSite().strength));
         locationScoreMap = new HashMap<>();
         strategicTerritories = new PriorityQueue<Territory>();
         movePlan = new HashMap<>();
-        
+
 
         initialize();
         computeScores();
@@ -88,54 +86,69 @@ public class StageTwoStrategy extends GameStrategy {
     }
 
 
-    // to be refactored for readability maybe
     private void computeScores() {
-        do {
-            // take the highest score territory from the heap
+        while (locationScoreMap.size() < gameMap.width * gameMap.height) {
             Territory territory = strategicTerritories.poll();
 
+            assert territory != null;
             if (!locationScoreMap.containsKey(territory.location)) {
-                // using the friendly distance allows the bot to move its pieces to the outside of the
-                // controlled territories
-                locationScoreMap.put(territory.location, territory.score + territory.friendlyDistance);
-                
-                // analyze all neighbours
-                for (Location neighbour : getNeighbours(territory.location)) {
-                    int neighId = neighbour.getSite().owner;
-        
-                    switch (Ownership.findOwnership(neighId, myID)) {
-                        case FRIENDLY:
-                            Territory friendlyTerritory = new Territory(neighbour);
-
-                            friendlyTerritory.score = territory.score + (territory.friendlyDistance + 1);
-                            friendlyTerritory.friendlyDistance = territory.friendlyDistance + 1;
-                            strategicTerritories.add(friendlyTerritory);
-                            break;
-
-                        case ENEMY:
-                            Territory enemyTerritory = new Territory(neighbour);
-
-                            enemyTerritory.score = INFINITY;
-                            enemyTerritory.friendlyDistance =  territory.friendlyDistance;
-                            strategicTerritories.add(enemyTerritory);
-                            break;
-
-                        case NEUTRAL:
-                            Territory neutralTerritory = new Territory(neighbour);
-                            // better code
-
-                            neutralTerritory.score = neighbour.getSite().production == 0 ?
-                                                        INFINITY : weightedScore(neighbour, territory.score);
-                            neutralTerritory.friendlyDistance = territory.friendlyDistance;
-                            strategicTerritories.add(neutralTerritory);
-                            break;
-
-                        default:
-                            throw new IllegalArgumentException("Invalid ownership");
-                    }
-                }
+                updateScoreMap(territory);
+                analyzeNeighbours(territory);
             }
-        } while (locationScoreMap.size() < gameMap.width * gameMap.height);
+        }
+    }
+
+    private void updateScoreMap(Territory territory) {
+        // Incorporate friendly distance into the score and update the map
+        double updatedScore = territory.score + territory.friendlyDistance;
+        locationScoreMap.put(territory.location, updatedScore);
+
+//        double baseScore = territory.score + territory.friendlyDistance;
+//
+//        // Higher score for aggressive moves in the endgame
+//        if (endGameStrategy) {
+//            Site site = territory.location.getSite();
+//            if (site.owner != myID && site.strength < myID.strength) {
+//                baseScore += ATTACK_BONUS;  // A significant bonus to encourage attacks
+//            }
+//        }
+//        locationScoreMap.put(territory.location, baseScore);
+    }
+
+    private void analyzeNeighbours(Territory territory) {
+        for (Location neighbour : getNeighbours(territory.location)) {
+            int owner = neighbour.getSite().owner;
+            Ownership ownership = Ownership.findOwnership(owner, myID);
+            Territory neighbourTerritory = createNeighbourTerritory(territory, neighbour, ownership);
+
+            strategicTerritories.add(neighbourTerritory);
+        }
+    }
+
+    private Territory createNeighbourTerritory(Territory territory, Location neighbour, Ownership ownership) {
+        Territory neighbourTerritory = new Territory(neighbour);
+        int production = neighbour.getSite().production;
+
+        switch (ownership) {
+            case FRIENDLY:
+                neighbourTerritory.score = territory.score + territory.friendlyDistance + 1;
+                neighbourTerritory.friendlyDistance = territory.friendlyDistance + 1;
+                break;
+
+            case ENEMY:
+                neighbourTerritory.score = INFINITY;
+                neighbourTerritory.friendlyDistance = territory.friendlyDistance;
+                break;
+
+            case NEUTRAL:
+                neighbourTerritory.score = (production == 0) ? INFINITY : weightedScore(neighbour, territory.score);
+                neighbourTerritory.friendlyDistance = territory.friendlyDistance;
+                break;
+
+            default:
+                throw new IllegalArgumentException("Invalid ownership");
+        }
+        return neighbourTerritory;
     }
 
     // we modify the score of a location based on the score of its neighbour
@@ -164,15 +177,17 @@ public class StageTwoStrategy extends GameStrategy {
                     strategicTerritories.add(territory);
                 }
             }
-            
+
         }
     }
 
     private Direction assignMove(Location myLocation) {
-        // if location's strength + prudction + strength assigned to it by other moves
+        // if location's strength + production + strength assigned to it by other moves
         // is over the limit, we must move to not waste halite
-        boolean isMoveNeeded = (myLocation.getSite().strength + myLocation.getSite().production
-                                    + movePlan.getOrDefault(myLocation, 0.0) > MAX_HALITE);
+        Site mySite = myLocation.getSite();
+
+        boolean isMoveNeeded = (mySite.strength + mySite.production
+                + movePlan.getOrDefault(myLocation, 0.0) > MAX_HALITE);
 
         // find all possible moves and their score
         List<MoveCandidate> moveCandidates = findCandidates(myLocation);
@@ -183,9 +198,11 @@ public class StageTwoStrategy extends GameStrategy {
         // if best move is INFINITY, it means all possible moves are bad choices
         if (bestMove.score == INFINITY) {
             if (isMoveNeeded) {
-                // to be improved. do not go random
-                moves.add(new Move(myLocation, Direction.randomDirection()));
-                return Direction.randomDirection();
+                // move towards the area with the lowest strength
+                MoveCandidate safestMove = Collections.min(moveCandidates, Comparator.comparing(mc -> mc.location.getSite().strength));
+                moves.add(new Move(myLocation, safestMove.direction));
+                return safestMove.direction;
+
             } else {
                 // stay still
                 moves.add(new Move(myLocation, Direction.STILL));
@@ -201,13 +218,12 @@ public class StageTwoStrategy extends GameStrategy {
 
         // if no moves are needed and for another piece it was beneficial to
         // move to this location, we stay STILL
-        if (!isMoveNeeded && isPartOfThePlan(myLocation)) {
+        if (isPartOfThePlan(myLocation)) {
             moves.add(new Move(myLocation, Direction.STILL));
             return Direction.STILL;
         }
 
-        // we do not neceasrrily need to move, however attack if possible
-        Site mySite = myLocation.getSite();
+        // we do not necessarily need to move, however attack if possible
         Site bestMoveSite = bestMove.location.getSite();
 
         // if our best option is an opponent attack if it can be conquered
@@ -229,8 +245,8 @@ public class StageTwoStrategy extends GameStrategy {
 
     private List<MoveCandidate> findCandidates(Location myLocation) {
         List<MoveCandidate> moveCandidates = new ArrayList<>();
-        
-        // check al neighbours
+
+        // check all neighbours
         for (Direction dir : Direction.CARDINALS) {
             Location neighbour = gameMap.getLocation(myLocation, dir);
             MoveCandidate moveCandidate = new MoveCandidate(neighbour, dir);
@@ -254,9 +270,9 @@ public class StageTwoStrategy extends GameStrategy {
 
     private boolean isAttackOpportunity(Site targetSite, Site mySite) {
         return targetSite.owner != myID &&
-               (mySite.strength == MAX_HALITE || mySite.strength > targetSite.strength);
+                (mySite.strength == MAX_HALITE || mySite.strength > targetSite.strength);
     }
-    
+
     private boolean isStrongEnoughToMove(Site mySite) {
         return mySite.strength >= 6 * mySite.production;
     }
