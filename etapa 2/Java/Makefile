@@ -7,9 +7,10 @@ CLASSES=$(SOURCES:$(SOURCE_FOLDER)/%.java=%.class)
 
 .PHONY: all build clean
 
-all: build
-
 build: $(CLASSES)
+
+run: build
+	$(JAVA) BotV2
 
 %.class: $(SOURCE_FOLDER)/%.java
 	$(JAVAC) $<

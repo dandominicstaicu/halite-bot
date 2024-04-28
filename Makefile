@@ -57,3 +57,6 @@ round1:
 
 round2:
 	python3 run.py --cmd "java BotV2" --round 2
+
+round3:
+	python3 run.py --cmd "java BotV2" --round 3
