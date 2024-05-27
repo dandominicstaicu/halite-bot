@@ -7,6 +7,7 @@ public class RandomBot {
         final InitPackage iPackage = Networking.getInit();
         final int myID = iPackage.myID;
         final GameMap gameMap = iPackage.map;
+        final int rand = 2;
 
         Networking.sendInit("RandomJavaBot");
 
